@@ -7,6 +7,7 @@ import pandas as pd
 import seaborn as sns
 import numpy as np
 import matplotlib.pyplot as plt
+import wikipedia
 
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.MINTY])
 
@@ -37,20 +38,9 @@ app.layout = dbc.Container([
                         dbc.Select(id="Pollutant", options=[
                             {"label": "Option 1", "value": "1"},
                             {"label": "Option 2", "value": "2"}
-                        ])
-                    ],width=3),
-                    dbc.Col([
+                        ]),
                         html.Br(),
-                        html.H3("Carte")
-                    ],width=5),
-                    dbc.Col([
-                        html.Br(),
-                        html.H3("Abondance par département")
-                    ],width=4)
-                ]),
-                dbc.Row([
-                    dbc.Col([
-                        html.Br(),
+                        html.P("Choix de l'année"),
                         dcc.Slider(
                             id="year-slider",
                             min=2018,
@@ -60,13 +50,44 @@ app.layout = dbc.Container([
                             marks={i: str(i) for i in range(2018, 2023)},
                             allow_direct_input=False
                         )
-                    ])
+                    ],width=3),
+                    dbc.Col([
+                        html.Br(),
+                        html.H3("Carte")
+                    ],width=5),
+                    dbc.Col([
+                        html.Br(),
+                        html.H3("Abondance par département")
+                    ],width=4)
                 ])
             ])
         ]),
         
         # Onglet Grand Public
-        dbc.Tab(label="Grand Public", tab_id="tab-gp", children=[])
+        dbc.Tab(label="Grand Public", tab_id="tab-gp", children=[
+            dbc.Container([
+                dbc.Row([
+                    dbc.Col([
+                        html.Br(),
+                        html.H3("Choix de l'année"),
+                        dcc.Slider(
+                            id="year-slider",
+                            min=2018,
+                            max=2022,
+                            step=1,
+                            value=2020,
+                            marks={i: str(i) for i in range(2018, 2023)},
+                            allow_direct_input=False
+                        )
+                    ]),
+                    dbc.Col([
+                        html.Br(),
+                        html.H3("Wikipédia"),
+                        html.H3("Abondance")
+                    ])
+                ]) 
+            ])       
+        ])
     ])
 ])
 
