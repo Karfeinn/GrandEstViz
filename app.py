@@ -47,6 +47,20 @@ app.layout = dbc.Container([
                         html.Br(),
                         html.H3("Abondance par département")
                     ],width=4)
+                ]),
+                dbc.Row([
+                    dbc.Col([
+                        html.Br(),
+                        dcc.Slider(
+                            id="year-slider",
+                            min=2018,
+                            max=2022,
+                            step=1,
+                            value=2020,
+                            marks={i: str(i) for i in range(2018, 2023)},
+                            allow_direct_input=False
+                        )
+                    ])
                 ])
             ])
         ]),
