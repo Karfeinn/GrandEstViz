@@ -6,7 +6,8 @@ import geopandas as gpd
 from shapely.geometry import Point
 
 oiseau = pd.read_csv("./CSV/oiseaux_grand-est_2018-2022_GBIF.csv", sep='\t', low_memory=False)
-oiseau = oiseau.drop(['infraspecificEpithet', 'verbatimScientificNameAuthorship', 'locality', 'stateProvince', 'elevation', 'elevationAccuracy', 'depth', 'depthAccuracy', 'institutionCode', 'collectionCode', 'catalogNumber', 'identifiedBy', 'dateIdentified', 'rightsHolder', 'mediaType', 'establishmentMeans', 'typeStatus', 'coordinatePrecision', 'recordNumber'], axis=1)
+oiseau = oiseau.drop(['infraspecificEpithet','taxonRank','verbatimScientificName','verbatimScientificNameAuthorship','countryCode','locality','stateProvince','publishingOrgKey','elevation','elevationAccuracy','depth','depthAccuracy','day','month','taxonKey','speciesKey','institutionCode','collectionCode','catalogNumber','recordNumber','identifiedBy','dateIdentified','license','rightsHolder','recordedBy','typeStatus','establishmentMeans','lastInterpreted','mediaType','issue'], axis=1)
+
 #import des geojson
 
 path = "./CSV/GEOJSON/"
@@ -54,4 +55,4 @@ result = result.rename(columns={'nom': 'departement', 'year':'annee'})
 merged = pd.merge(result, ges_all, on=["departement", "annee"], how="left")
 merged = pd.merge(merged, emi_all, on=["departement", "annee"], how="left")
 
-print(merged)
+merged.to_csv('./CSV/fusion.csv')
