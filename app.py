@@ -12,6 +12,7 @@ import geopandas as gpd
 import glob
 import os
 import json
+import fonctions_utiles
 
 dataset = pd.read_csv("./CSV/fusion.csv",engine='c', dtype={
     "gbifID": "int32",
@@ -27,20 +28,9 @@ dataset = pd.read_csv("./CSV/fusion.csv",engine='c', dtype={
     'individualCount':"object",
     'decimalLatitude':"float64",
     'decimalLongitude':"float64", 
-    'coordinateUncertaintyInMeters':"float64",
-    'coordinatePrecision':"float64", 
-    'eventDate':"string", 
     'annee':"int32", 
-    'basisOfRecord':"category",
-    'geometry':"object", 
-    'index_right':"float64", 
     'code':"object", 
-    'departement':"category", 
-    'OBJECTID_x':"object",
-    'type_zone_x':"category", 
-    'code_zone_x':"object", 
-    'version_x':"category", 
-    'annee_inv_x':"object", 
+    'departement':"category",  
     'co2_kg':"float64",
     'ch4_kg':"float64", 
     'n2o_kg':"float64", 
@@ -59,16 +49,6 @@ dataset = pd.read_csv("./CSV/fusion.csv",engine='c', dtype={
     'prg2007_teqco2':"float64", 
     'prg2013_teqco2':"float64", 
     'co2_bio_kg':"float64", 
-    'geom_x':"string",
-    'GlobalID_x':"string", 
-    'Shape__Area_x':"float64", 
-    'Shape__Length_x':"float64", 
-    'code_epci':"object",
-    'OBJECTID_y':"object", 
-    'type_zone_y':"string", 
-    'code_zone_y':"object", 
-    'version_y':"string", 
-    'annee_inv_y':"object",
     'nox_kg':"float64", 
     'so2_kg':"float64", 
     'pm10_kg':"float64", 
@@ -83,9 +63,6 @@ dataset = pd.read_csv("./CSV/fusion.csv",engine='c', dtype={
     'pb_kg':"float64", 
     'bap_kg':"float64",
     'geom_y':"string", 
-    'GlobalID_y':"string", 
-    'Shape__Area_y':"float64", 
-    'Shape__Length_y':"float64"
 })
 
 path = "./CSV/GEOJSON/"
@@ -192,11 +169,15 @@ app.layout = dbc.Container([
                         html.Br(),
                         html.H3("Carte"),
                         html.Br(),
-                        dcc.Graph(id="map-executive")
+                        dcc.Graph(id="map-executive"),
+                        html.Br(),
+                        html.P(id="map-count")
                     ],width=5),
                     dbc.Col([
                         html.Br(),
-                        html.H3("Abondance par département")
+                        html.H3("Richesse spécifique par département"),
+                        html.H5(id="species-year"),
+                        html.P(id="species-count", style={"white-space": "pre-line"})
                     ],width=4)
                 ])
             ])
@@ -246,6 +227,7 @@ def complete_pollutant_select(_):
 
 @app.callback(
     Output("map-executive", "figure"),
+    Output("map-count", "children"),
     Input("filter-button", "n_clicks"),
     State("Family", "value"),
     State("Pollutant", "value"),
@@ -297,9 +279,28 @@ def update_map(n_clicks, family, pollutant, year):
         margin={"r":0,"t":0,"l":0,"b":0}
     )
 
-    return fig
+    return fig, f"{len(gdf_family)} obeservations de {family}"
 
+@app.callback(
+    Output("species-count", "children"),
+    Output("species-year", "children"),
+    Input("filter-button", "n_clicks"),
+    State("year-slider", "value")
+)
+def update_specific_wealth(n_clicks, year):
+    if n_clicks == 0:
+        return dash.no_update 
 
+    df_year = dataset[dataset["annee"] == year]
+    specific_wealth = fonctions_utiles.unique_species_per_department(df_year)
+
+    str_list = []
+
+    for key, val in specific_wealth.items():
+        str_list.append(f" - {key} : {val} espèces différentes")
+    
+    return "\n".join(str_list), year
+    
 if __name__ == '__main__':
     app.run(debug=True)
 
