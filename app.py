@@ -189,21 +189,24 @@ app.layout = dbc.Container([
                 dbc.Row([
                     dbc.Col([
                         html.Br(),
-                        html.H3("Choix de l'année"),
+                        html.H3(id="text-public"),
                         dcc.Slider(
                             id="year-slider-public",
                             min=2018,
                             max=2022,
                             step=1,
-                            value=2020,
+                            value=2018,
                             marks={i: str(i) for i in range(2018, 2023)},
                             allow_direct_input=False
-                        )
+                        ),
+                        html.Br(),
+                        dcc.Graph(id="map-public"),
+                        dcc.Store(id="family-index", data=0)
                     ]),
+                    dcc.Interval(id="interval", interval=2500, n_intervals=0),
                     dbc.Col([
                         html.Br(),
                         html.H3("Wikipédia"),
-                        html.H3("Abondance")
                     ])
                 ]) 
             ])       
@@ -301,6 +304,47 @@ def update_specific_wealth(n_clicks, year):
     
     return "\n".join(str_list), year
     
+@app.callback(
+    Output("year-slider-public", "value"),
+    Output("family-index", "data"),
+    Input("interval", "n_intervals"),
+    State("year-slider-public", "value"),
+    State("family-index", "data"),
+)
+def animate_year(n, year, i):
+    if year == 2022:
+        year = 2018
+        if i == len(family_options)-1:
+            i = 0
+        else:
+            i += 1
+    else:
+        year += 1
+    return year, i
+
+@app.callback(
+    Output("map-public", "figure"),
+    Input("year-slider-public", "value"),
+    Input("family-index", "data"),
+)
+def animate_map(year, i):
+    gdf_year = gdf[gdf["annee"] == year]
+    gdf_family = gdf_year[gdf_year["family"] == family_options[i]["value"]]
+
+    fig = px.density_map(
+        gdf_family,
+        lat="decimalLatitude",
+        lon="decimalLongitude",
+        radius=10,
+        center=dict(lat=48.8, lon=5.5),
+        zoom=5.5,
+        map_style="open-street-map",
+        opacity=0.6,
+        color_continuous_scale="greens"
+    )
+
+    return fig
+
 if __name__ == '__main__':
     app.run(debug=True)
 
