@@ -55,5 +55,16 @@ result = result.rename(columns={'nom': 'departement', 'year':'annee'})
 merged = pd.merge(result, ges_all, on=["departement", "annee"], how="left")
 merged = pd.merge(merged, emi_all, on=["departement", "annee"], how="left")
 
+
+
+merged = merged.drop([
+    'coordinateUncertaintyInMeters','coordinatePrecision', 'eventDate', 
+     'basisOfRecord', 'OBJECTID_x', 'type_zone_x', 'code_zone_x', 
+    'version_x', 'annee_inv_x','code_epci','OBJECTID_y', 'type_zone_y', 
+    'code_zone_y', 'version_y', 'annee_inv_y','geom_y', 'GlobalID_y', 
+    'Shape__Area_y', 'Shape__Length_y','geom_x',
+       'GlobalID_x', 'Shape__Area_x', 'Shape__Length_x', 'geometry', 'index_right'
+    ], axis = 1)
+
 print(merged.columns)
 merged.to_csv('./CSV/fusion.csv')

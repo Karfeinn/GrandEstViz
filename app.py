@@ -1,5 +1,5 @@
 import dash
-from dash import dcc, html, callback, Input, Output, dash_table
+from dash import dcc, html, callback, Input, Output, State, dash_table
 import plotly.graph_objects as go
 import plotly.express as px
 import dash_bootstrap_components as dbc
@@ -8,18 +8,22 @@ import seaborn as sns
 import numpy as np
 import matplotlib.pyplot as plt
 import wikipedia
+import geopandas as gpd
+import glob
+import os
+import json
 
-dataset = pd.read_csv("./CSV/fusion.csv", dtype={
+dataset = pd.read_csv("./CSV/fusion.csv",engine='c', dtype={
     "gbifID": "int32",
-    "kingdom":"string",
-    "phylum":"string",
-    "class":"string",
-    "order":"string",
-    "family":"string",
-    "genus":"string",
-    "species":"string",
-    'scientificName':"string",
-    'occurrenceStatus':"string", 
+    "kingdom":"category",
+    "phylum":"category",
+    "class":"category",
+    "order":"category",
+    "family":"category",
+    "genus":"category",
+    "species":"category",
+    'scientificName':"category",
+    'occurrenceStatus':"category", 
     'individualCount':"object",
     'decimalLatitude':"float64",
     'decimalLongitude':"float64", 
@@ -27,15 +31,15 @@ dataset = pd.read_csv("./CSV/fusion.csv", dtype={
     'coordinatePrecision':"float64", 
     'eventDate':"string", 
     'annee':"int32", 
-    'basisOfRecord':"string",
+    'basisOfRecord':"category",
     'geometry':"object", 
     'index_right':"float64", 
     'code':"object", 
-    'departement':"string", 
+    'departement':"category", 
     'OBJECTID_x':"object",
-    'type_zone_x':"string", 
+    'type_zone_x':"category", 
     'code_zone_x':"object", 
-    'version_x':"string", 
+    'version_x':"category", 
     'annee_inv_x':"object", 
     'co2_kg':"float64",
     'ch4_kg':"float64", 
@@ -84,8 +88,62 @@ dataset = pd.read_csv("./CSV/fusion.csv", dtype={
     'Shape__Length_y':"float64"
 })
 
+path = "./CSV/GEOJSON/"
+all_files = glob.glob(os.path.join(path, "*.geojson"))
+liste_dep = [gpd.read_file(f) for f in all_files]
+departements = pd.concat(liste_dep, ignore_index=True)
+departements = departements.to_crs("EPSG:4326")
+geojson_dep = json.loads(departements.to_json())
 
-pollutant_list = ['nox_kg','so2_kg','pm10_kg','pm25_kg','co_kg','c6h6_kg','covnm_kg','nh3_kg','as_kg','cd_kg','ni_kg','pb_kg','bap_kg','co2_kg','ch4_kg','n2o_kg','hfc_23_kg','hfc_32_kg','hfc_125_kg','hfc_134a_kg','hfc_143a_kg','hfc_152a_kg','hfc_227ea_kg','hfc_245fa_kg','hfc_365mfc_kg','pfc_kg','sf6_kg','nf3_kg','prg2007_teqco2','prg2013_teqco2','co2_bio_kg']
+pollutant_dict = {
+    "Oxydes d'azote (NOx)": "nox_kg",
+    "Dioxyde de soufre (SO₂)": "so2_kg",
+    "Particules PM10": "pm10_kg",
+    "Particules PM2.5": "pm25_kg",
+    "Monoxyde de carbone (CO)": "co_kg",
+    "Benzène (C6H6)": "c6h6_kg",
+    "Composés Organiques Volatils (COVNM)": "covnm_kg",
+    "Ammoniac (NH₃)": "nh3_kg",
+    "Arsenic (As)": "as_kg",
+    "Cadmium (Cd)": "cd_kg",
+    "Nickel (Ni)": "ni_kg",
+    "Plomb (Pb)": "pb_kg",
+    "Benzo[a]pyrène (BaP)": "bap_kg",
+    "Dioxyde de carbone (CO₂)": "co2_kg",
+    "Méthane (CH₄)": "ch4_kg",
+    "Protoxyde d'azote (N₂O)": "n2o_kg",
+    "HFC-23": "hfc_23_kg",
+    "HFC-32": "hfc_32_kg",
+    "HFC-125": "hfc_125_kg",
+    "HFC-134a": "hfc_134a_kg",
+    "HFC-143a": "hfc_143a_kg",
+    "HFC-152a": "hfc_152a_kg",
+    "HFC-227ea": "hfc_227ea_kg",
+    "HFC-245fa": "hfc_245fa_kg",
+    "HFC-365mfc": "hfc_365mfc_kg",
+    "Perfluorocarbures (PFC)": "pfc_kg",
+    "Hexafluorure de soufre (SF₆)": "sf6_kg",
+    "Trifluorure d'azote (NF₃)": "nf3_kg",
+    "PRG 2007 (t éq. CO₂)": "prg2007_teqco2",
+    "PRG 2013 (t éq. CO₂)": "prg2013_teqco2",
+    "CO₂ biogénique": "co2_bio_kg",
+}
+
+pollutant_options = [
+    {"label": k, "value": v}
+    for k, v in pollutant_dict.items()
+]
+
+family_options = [
+    {"label": f, "value": f}
+    for f in dataset["family"].cat.categories
+]
+
+gdf = gpd.GeoDataFrame(
+    dataset,
+    geometry=gpd.points_from_xy(dataset.decimalLongitude, dataset.decimalLatitude),
+    crs="EPSG:4326" 
+)
 
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.MINTY])
 
@@ -106,8 +164,8 @@ app.layout = dbc.Container([
                     dbc.Col([
                         html.Br(),
                         html.H3("Filtre d'affichage"),
-                        html.P("Espèce d'oiseau à analyser"),
-                        dbc.Select(id="Species", options=[
+                        html.P("Famille d'oiseau à analyser"),
+                        dbc.Select(id="Family", options=[
                         ]),
                         html.Br(), 
                         html.P("Polluant à analyser"),
@@ -126,13 +184,15 @@ app.layout = dbc.Container([
                         ),
                         html.Br(),
                         html.Div(
-                            dbc.Button("Appliquer filtres", color="primary"),
+                            dbc.Button("Appliquer filtres",id="filter-button", color="primary"),
                             className="d-grid gap-2",
                         ),
                     ],width=3),
                     dbc.Col([
                         html.Br(),
-                        html.H3("Carte")
+                        html.H3("Carte"),
+                        html.Br(),
+                        dcc.Graph(id="map-executive")
                     ],width=5),
                     dbc.Col([
                         html.Br(),
@@ -171,24 +231,73 @@ app.layout = dbc.Container([
 ])
 
 @app.callback(
-    Output(component_id="Species", component_property="options"),
+    Output(component_id="Family", component_property="options"),
     Input("url", "pathname") 
 )
 def complete_family_select(_):
-    option_list = []
-    for family in pd.unique(dataset['family']):
-        option_list.append({"label": family, "value": family})
-    return option_list
+    return family_options
 
 @app.callback(
     Output(component_id="Pollutant", component_property="options"),
     Input("url", "pathname") 
 )
 def complete_pollutant_select(_):
-    option_list = []
-    for pollutant in pollutant_list:
-        option_list.append({"label": pollutant, "value": pollutant})
-    return option_list
+    return pollutant_options
+
+@app.callback(
+    Output("map-executive", "figure"),
+    Input("filter-button", "n_clicks"),
+    State("Family", "value"),
+    State("Pollutant", "value"),
+    State("year-slider", "value")
+)
+def update_map(n_clicks, family, pollutant, year):
+    if n_clicks == 0:
+        return dash.no_update 
+    if family == "" or pollutant == "":
+        return dash.no_update 
+    
+    gdf_year = gdf[gdf["annee"] == year]
+    gdf_family = gdf_year[gdf_year["family"] == family]
+
+    fig = go.Figure()
+
+    fig.add_trace(
+        go.Choroplethmap(
+            geojson=geojson_dep,
+            locations=departements.index,
+            z=gdf_year[pollutant],
+            colorscale="purples",
+            showscale=False,
+            marker_line_color="gray",
+            marker_line_width=0.5,
+            hoverinfo="skip"
+        )
+    )
+
+    fig.add_trace(
+        go.Scattermap(
+            lat=gdf_family["decimalLatitude"],
+            lon=gdf_family ["decimalLongitude"],
+            mode="markers",
+            marker=dict(
+                size=6,
+                color="lightgreen",
+                opacity=0.7
+            ),
+            name="Observations"
+        )
+    )
+
+    fig.update_layout(
+        map=dict(
+            center=dict(lat=48.8, lon=5.5),
+            zoom=6
+        ),
+        margin={"r":0,"t":0,"l":0,"b":0}
+    )
+
+    return fig
 
 
 if __name__ == '__main__':
